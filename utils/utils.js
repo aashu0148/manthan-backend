@@ -33,6 +33,10 @@ export const hashPassword = (password) => {
   return bcrypt.hashSync(password, 10);
 };
 
+export const comparePassword = (password, hash) => {
+  return bcrypt.compareSync(password, hash);
+};
+
 export const reqToDbFailed = (res, err) => {
   res.status(statusCodes.databaseError).json({
     status: false,

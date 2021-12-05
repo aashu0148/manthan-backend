@@ -43,7 +43,7 @@ export const getFakeUserData = () => {
   return {
     firstName: faker.name.firstName(),
     lastName: faker.name.lastName(),
-    email: faker.internet.email(),
+    email: faker.internet.email().toLocaleLowerCase(),
     mobile: getRandomMobile(),
     dbType:
       dbTypes[

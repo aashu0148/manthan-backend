@@ -3,8 +3,12 @@ import express from "express";
 import ExternalUser from "../models/Externaluser.js";
 import Post from "../models/Post.js";
 import { statusCodes } from "../utils/constants.js";
-import { getFakePostData, getFakeUserData } from "../utils/script.js";
-import { reqToDbFailed } from "../utils/utils.js";
+import { getFakeUserData } from "../utils/script.js";
+import {
+  reqToDbFailed,
+  validateEmail,
+  validateMobile,
+} from "../utils/utils.js";
 
 const router = express.Router();
 
@@ -17,42 +21,8 @@ router.get("/fake/one", (req, res) => {
   });
 });
 
-router.get("/user/:id", async (req, res) => {
-  const id = req.params.id;
-
-  if (!id) {
-    res.status(statusCodes.missingInfo).json({
-      status: false,
-      message: "Id missing",
-    });
-    return;
-  }
-  let user;
-
-  try {
-    user = ExternalUser.findOne({ _id: id });
-  } catch (err) {
-    reqToDbFailed(res, err);
-    return;
-  }
-
-  if (!user) {
-    res.status(statusCodes.invalidDataSent).json({
-      status: false,
-      message: "Invalid Id",
-    });
-    return;
-  }
-
-  res.status(statusCodes.ok).json({
-    status: true,
-    message: "User found",
-    data: user,
-  });
-});
-
-router.get("/user/:email/:mobile", async (req, res) => {
-  const { email, mobile } = req.params;
+router.get("/user/find", async (req, res) => {
+  const { email, mobile } = req.query;
 
   if (!email && !mobile) {
     res.status(statusCodes.missingInfo).json({
@@ -61,6 +31,23 @@ router.get("/user/:email/:mobile", async (req, res) => {
     });
     return;
   }
+
+  if (email && !validateEmail(email)) {
+    res.status(statusCodes.invalidDataSent).json({
+      status: false,
+      message: `Invalid email`,
+    });
+    return;
+  }
+
+  if (mobile && !validateMobile(mobile)) {
+    res.status(statusCodes.invalidDataSent).json({
+      status: false,
+      message: `Invalid mobile`,
+    });
+    return;
+  }
+
   let user;
 
   const filter = {};
@@ -68,7 +55,7 @@ router.get("/user/:email/:mobile", async (req, res) => {
   else if (mobile) filter.mobile = mobile;
 
   try {
-    user = ExternalUser.findOne(filter);
+    user = await ExternalUser.findOne(filter);
   } catch (err) {
     reqToDbFailed(res, err);
     return;
@@ -77,7 +64,9 @@ router.get("/user/:email/:mobile", async (req, res) => {
   if (!user) {
     res.status(statusCodes.invalidDataSent).json({
       status: false,
-      message: `Invalid ${email ? email : mobile}`,
+      message: `Can't find ${
+        email ? "email - " + email : "mobile - " + mobile
+      }`,
     });
     return;
   }
@@ -90,7 +79,7 @@ router.get("/user/:email/:mobile", async (req, res) => {
 });
 
 router.get("/user/posts/:userId", async (req, res) => {
-  const id = req.params.id;
+  const id = req.params.userId;
 
   if (!id) {
     res.status(statusCodes.missingInfo).json({
@@ -103,7 +92,7 @@ router.get("/user/posts/:userId", async (req, res) => {
   let posts;
 
   try {
-    posts = Post.find({ userId: id });
+    posts = await Post.find({ userId: id });
   } catch (err) {
     reqToDbFailed(res, err);
     return;
@@ -121,6 +110,40 @@ router.get("/user/posts/:userId", async (req, res) => {
     status: true,
     message: "Posts found",
     data: posts,
+  });
+});
+
+router.get("/user/:id", async (req, res) => {
+  const id = req.params.id;
+
+  if (!id) {
+    res.status(statusCodes.missingInfo).json({
+      status: false,
+      message: "Id missing",
+    });
+    return;
+  }
+  let user;
+
+  try {
+    user = await ExternalUser.findOne({ _id: id });
+  } catch (err) {
+    reqToDbFailed(res, err);
+    return;
+  }
+
+  if (!user) {
+    res.status(statusCodes.invalidDataSent).json({
+      status: false,
+      message: "Invalid Id",
+    });
+    return;
+  }
+
+  res.status(statusCodes.ok).json({
+    status: true,
+    message: "User found",
+    data: user,
   });
 });
 

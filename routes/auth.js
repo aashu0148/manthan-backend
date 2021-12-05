@@ -1,6 +1,11 @@
 import express from "express";
 
-import { hashPassword, reqToDbFailed, validateEmail } from "../utils/utils.js";
+import {
+  comparePassword,
+  hashPassword,
+  reqToDbFailed,
+  validateEmail,
+} from "../utils/utils.js";
 import { signToken, verifyToken } from "../utils/authToken.js";
 import { statusCodes } from "../utils/constants.js";
 import UserModel from "../models/User.js";
@@ -28,19 +33,25 @@ router.post("/login", async (req, res) => {
   }
 
   let user;
-  const hashedPassword = hashPassword(password);
 
   try {
-    user = await UserModel.findOne(
-      { email: email, password: hashedPassword },
-      "-password"
-    );
+    user = await UserModel.findOne({ email: email });
   } catch (err) {
     reqToDbFailed(res, err);
     return;
   }
 
   if (!user) {
+    res.status(statusCodes.invalidDataSent).json({
+      status: false,
+      message: `Invalid email, can't find user`,
+    });
+    return;
+  }
+
+  const hashedPassword = user.password;
+
+  if (!comparePassword(password, hashedPassword)) {
     res.status(statusCodes.invalidDataSent).json({
       status: false,
       message: `Invalid credentails, can't find user`,
@@ -112,7 +123,7 @@ router.post("/register", async (req, res) => {
   const newUser = new UserModel({
     firstName,
     lastName,
-    email: email,
+    email: email.toLowerCase(),
     password: hashedPassword,
   });
 
