@@ -144,6 +144,7 @@ router.post("/register", async (req, res) => {
       });
     })
     .catch((err) => {
+      console.log(err);
       res.status(statusCodes.somethingWentWrong).json({
         status: false,
         message: `Error creating user`,

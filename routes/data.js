@@ -3,7 +3,9 @@ import express from "express";
 import ExternalUser from "../models/Externaluser.js";
 import Post from "../models/Post.js";
 import { statusCodes } from "../utils/constants.js";
-import { getFakeUserData } from "../utils/script.js";
+import {
+  getFakeUserData,
+} from "../utils/script.js";
 import {
   reqToDbFailed,
   validateEmail,
