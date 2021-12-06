@@ -48,20 +48,20 @@ router.get("/user/find", async (req, res) => {
     return;
   }
 
-  let user;
+  let users;
 
   const filter = {};
   if (email) filter.email = email;
   else if (mobile) filter.mobile = mobile;
 
   try {
-    user = await ExternalUser.findOne(filter);
+    users = await ExternalUser.find(filter);
   } catch (err) {
     reqToDbFailed(res, err);
     return;
   }
 
-  if (!user) {
+  if (users.length == 0) {
     res.status(statusCodes.invalidDataSent).json({
       status: false,
       message: `Can't find ${
@@ -74,7 +74,7 @@ router.get("/user/find", async (req, res) => {
   res.status(statusCodes.ok).json({
     status: true,
     message: "User found",
-    data: user,
+    data: users,
   });
 });
 

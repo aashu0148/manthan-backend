@@ -107,7 +107,9 @@ router.post("/register", async (req, res) => {
 
   let userWithEmail;
   try {
-    userWithEmail = await UserModel.findOne({ email });
+    userWithEmail = await UserModel.findOne({
+      email: String(email).toLowerCase(),
+    });
   } catch (err) {
     reqToDbFailed(res, err);
     return;
@@ -123,7 +125,7 @@ router.post("/register", async (req, res) => {
   const newUser = new UserModel({
     firstName,
     lastName,
-    email: email.toLowerCase(),
+    email: String(email).toLowerCase(),
     password: hashedPassword,
   });
 
