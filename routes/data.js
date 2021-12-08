@@ -4,6 +4,9 @@ import ExternalUser from "../models/Externaluser.js";
 import Post from "../models/Post.js";
 import { statusCodes } from "../utils/constants.js";
 import {
+  generatePosts,
+  generateUsers,
+  getFakePostData,
   getFakeUserData,
 } from "../utils/script.js";
 import {
@@ -16,10 +19,12 @@ const router = express.Router();
 
 router.get("/fake/one", (req, res) => {
   const data = getFakeUserData();
+  const postData = getFakePostData();
 
   res.status(statusCodes.ok).json({
     status: true,
     data,
+    postData,
   });
 });
 
@@ -147,6 +152,10 @@ router.get("/user/:id", async (req, res) => {
     message: "User found",
     data: user,
   });
+});
+
+router.get("/generate", async (req, res) => {
+  await generatePosts();
 });
 
 export default router;

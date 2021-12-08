@@ -1,4 +1,5 @@
 import faker from "faker";
+import txtgen from "txtgen";
 
 import ExternalUser from "../models/Externaluser.js";
 import Post from "../models/Post.js";
@@ -6,18 +7,16 @@ import { dbTypes } from "./constants.js";
 import { randomNumberBetween } from "./utils.js";
 
 const getRandomImage = () => {
-  const random = randomNumberBetween(1, 5);
+  const random = randomNumberBetween(1, 4);
 
   switch (random) {
     case 1:
       return faker.image.cats();
-    case 2:
-      return faker.image.avatar();
     case 3:
       return faker.image.animals();
-    case 4:
+    case 2:
       return faker.image.cats();
-    case 5:
+    case 4:
       return faker.image.people();
     default:
       return faker.image.people();
@@ -39,18 +38,27 @@ const getRandomMobile = () => {
   }
 };
 
+const getRandomDbTypes = () => {
+  const dbs = [];
+
+  const count = randomNumberBetween(1, 3);
+  for (let i = 0; i < count; ++i) {
+    const dbIndex = randomNumberBetween(0, Object.keys(dbTypes).length - 1);
+    const db = dbTypes[Object.keys(dbTypes)[dbIndex]];
+    if (dbs.findIndex((item) => item == db) < 0) {
+      dbs.push(db);
+    }
+  }
+  return dbs;
+};
+
 export const getFakeUserData = () => {
   return {
     firstName: faker.name.firstName(),
     lastName: faker.name.lastName(),
     email: faker.internet.email().toLocaleLowerCase(),
     mobile: getRandomMobile(),
-    dbType:
-      dbTypes[
-        Object.keys(dbTypes)[
-          randomNumberBetween(0, Object.keys(dbTypes).length - 1)
-        ]
-      ],
+    dbTypes: getRandomDbTypes(),
     address: `${faker.address.streetAddress()} ${faker.address.city()} ${faker.address.state()} ${faker.address.zipCode()}`,
     profileImage: getRandomImage(),
   };
@@ -59,33 +67,36 @@ export const getFakeUserData = () => {
 export const getFakePostData = () => {
   return {
     title: faker.name.title(),
-    desc: faker.lorem.paragraphs(randomNumberBetween(1, 8)),
-    date: faker.date.between(new Date(1999 - 1 - 9), new Date()),
+    desc: txtgen.article(),
+    date: faker.date.between(new Date(2012 - 1 - 9), new Date()),
     image: randomNumberBetween(0, 4) ? getRandomImage() : "",
   };
 };
 
-// export const generateUsers = async () => {
-//   for (let i = 0; i < 80; ++i) {
-//     const userData = getFakeUserData();
+export const generateUsers = async () => {
+  for (let i = 0; i < 80; ++i) {
+    const userData = getFakeUserData();
 
-//     const user = new ExternalUser(userData);
+    const user = new ExternalUser(userData);
 
-//     await user.save();
-//   }
-// };
+    await user.save();
+  }
+};
 
-// export const generatePosts = async () => {
-//   const users = await ExternalUser.find({});
-//   if (users.length === 0) return;
+export const generatePosts = async () => {
+  const users = await ExternalUser.find({});
+  if (users.length === 0) return;
 
-//   users.forEach(async (item) => {
-//     for (let i = 0; i < randomNumberBetween(0, 19); ++i) {
-//       const postdata = getFakePostData();
-//       postdata.userId = item._id;
-//       const post = new Post(postdata);
+  users.forEach(async (user) => {
+    for (let i = 0; i < user?.dbTypes?.length; ++i) {
+      for (let j = 0; j < randomNumberBetween(0, 19); ++j) {
+        const postdata = getFakePostData();
+        postdata.userId = user._id;
+        postdata.dbType = user.dbTypes[Object.keys(user.dbTypes)[i]];
+        const post = new Post(postdata);
 
-//       await post.save();
-//     }
-//   });
-// };
+        await post.save();
+      }
+    }
+  });
+};

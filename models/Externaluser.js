@@ -5,7 +5,7 @@ const userSchema = mongoose.Schema({
   lastName: String,
   email: { type: String, unique: true },
   mobile: { type: String, unique: true },
-  dbType: String,
+  dbTypes: Array,
   profileImage: String,
   address: String,
 });

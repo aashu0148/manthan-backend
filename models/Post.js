@@ -6,6 +6,7 @@ const postSchema = mongoose.Schema({
   date: Date,
   image: String,
   userId: String,
+  dbType: String,
 });
 
 const model = mongoose.model("Post", postSchema);
