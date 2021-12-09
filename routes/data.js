@@ -55,20 +55,20 @@ router.get("/user/find", async (req, res) => {
     return;
   }
 
-  let users;
+  let user;
 
   const filter = {};
   if (email) filter.email = email;
   else if (mobile) filter.mobile = mobile;
 
   try {
-    users = await ExternalUser.find(filter);
+    user = await ExternalUser.findOne(filter);
   } catch (err) {
     reqToDbFailed(res, err);
     return;
   }
 
-  if (users.length == 0) {
+  if (!user) {
     res.status(statusCodes.invalidDataSent).json({
       status: false,
       message: `Can't find ${
@@ -78,92 +78,14 @@ router.get("/user/find", async (req, res) => {
     return;
   }
 
-  res.status(statusCodes.ok).json({
-    status: true,
-    message: "User found",
-    data: users,
-  });
-});
-
-router.get("/user/posts/:userId/:dbType", async (req, res) => {
-  const id = req.params.userId;
-  const dbType = req.params.dbType;
-
-  if (!id) {
-    res.status(statusCodes.missingInfo).json({
-      status: false,
-      message: "User id missing",
-    });
-    return;
-  }
-
-  if (!dbType) {
-    res.status(statusCodes.missingInfo).json({
-      status: false,
-      message: "User dbType missing",
-    });
-    return;
-  }
-
-  let posts;
-
-  try {
-    posts = await Post.find({ userId: id, dbTypes: { $in: [dbType] } });
-  } catch (err) {
-    reqToDbFailed(res, err);
-    return;
-  }
-
-  if (posts.length == 0) {
-    res.status(statusCodes.noDataAvailable).json({
-      status: false,
-      message: "No Post found",
-    });
-    return;
-  }
-
-  res.status(statusCodes.ok).json({
-    status: true,
-    message: "Posts found",
-    data: posts,
-  });
-});
-
-router.get("/user/:id", async (req, res) => {
-  const id = req.params.id;
-
-  if (!id) {
-    res.status(statusCodes.missingInfo).json({
-      status: false,
-      message: "Id missing",
-    });
-    return;
-  }
-  let user;
-
-  try {
-    user = await ExternalUser.findOne({ _id: id });
-  } catch (err) {
-    reqToDbFailed(res, err);
-    return;
-  }
-
-  if (!user) {
-    res.status(statusCodes.invalidDataSent).json({
-      status: false,
-      message: "Invalid Id",
-    });
-    return;
-  }
-
-  const posts = await Post.find({ userId: id });
+  const posts = await Post.find({ userId: user._id });
 
   if (posts.length == 0) {
     res.status(statusCodes.ok).json({
       status: true,
       message: "User found",
       data: user,
-      flag: {
+      flags: {
         [dbTypes.fb]: 0,
         [dbTypes.insta]: 0,
         [dbTypes.twitter]: 0,
@@ -243,7 +165,109 @@ router.get("/user/:id", async (req, res) => {
       }
     }
   });
-  console.log(fbFlags, instaPosts, twitterPosts);
+
+  const fbSum = fbFlags.reduce((a, b) => a + b, 0);
+  const fbRating = fbSum / fbFlags.length || 0;
+
+  const instaSum = instaFlags.reduce((a, b) => a + b, 0);
+  const instaRating = instaSum / instaFlags.length || 0;
+
+  const twitterSum = twitterFlags.reduce((a, b) => a + b, 0);
+  const twitterRating = twitterSum / twitterFlags.length || 0;
+
+  res.status(statusCodes.ok).json({
+    status: true,
+    message: "User found",
+    data: user,
+    flags: {
+      [dbTypes.fb]: fbRating,
+      [dbTypes.insta]: instaRating,
+      [dbTypes.twitter]: twitterRating,
+    },
+  });
+});
+
+router.get("/user/posts/:userId/:dbType", async (req, res) => {
+  const id = req.params.userId;
+  const dbType = req.params.dbType;
+
+  if (!id) {
+    res.status(statusCodes.missingInfo).json({
+      status: false,
+      message: "User id missing",
+    });
+    return;
+  }
+
+  if (!dbType) {
+    res.status(statusCodes.missingInfo).json({
+      status: false,
+      message: "User dbType missing",
+    });
+    return;
+  }
+
+  let posts;
+
+  try {
+    posts = await Post.find({ userId: id, dbTypes: { $in: [dbType] } });
+  } catch (err) {
+    reqToDbFailed(res, err);
+    return;
+  }
+
+  if (posts.length == 0) {
+    res.status(statusCodes.noDataAvailable).json({
+      status: false,
+      message: "No Post found",
+    });
+    return;
+  }
+
+  res.status(statusCodes.ok).json({
+    status: true,
+    message: "Posts found",
+    data: posts,
+  });
+});
+
+router.get("/user/:id", async (req, res) => {
+  const id = req.params.id;
+
+  if (!id) {
+    res.status(statusCodes.missingInfo).json({
+      status: false,
+      message: "Id missing",
+    });
+    return;
+  }
+  let user;
+
+  try {
+    user = await ExternalUser.findOne({ _id: id });
+  } catch (err) {
+    reqToDbFailed(res, err);
+    return;
+  }
+
+  if (!user) {
+    res.status(statusCodes.invalidDataSent).json({
+      status: false,
+      message: "Invalid Id",
+    });
+    return;
+  }
+
+  res.status(statusCodes.ok).json({
+    status: true,
+    message: "User found",
+    data: user,
+    flag: {
+      [dbTypes.fb]: fbRating,
+      [dbTypes.insta]: instaRating,
+      [dbTypes.twitter]: twitterRating,
+    },
+  });
 });
 
 // router.get("/generate", async (req, res) => {
