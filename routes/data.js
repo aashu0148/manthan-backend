@@ -2,7 +2,7 @@ import express from "express";
 
 import ExternalUser from "../models/Externaluser.js";
 import Post from "../models/Post.js";
-import { statusCodes } from "../utils/constants.js";
+import { hateSpeech, statusCodes, dbTypes } from "../utils/constants.js";
 import {
   generatePosts,
   generateUsers,
@@ -85,8 +85,9 @@ router.get("/user/find", async (req, res) => {
   });
 });
 
-router.get("/user/posts/:userId", async (req, res) => {
+router.get("/user/posts/:userId/:dbType", async (req, res) => {
   const id = req.params.userId;
+  const dbType = req.params.dbType;
 
   if (!id) {
     res.status(statusCodes.missingInfo).json({
@@ -96,10 +97,18 @@ router.get("/user/posts/:userId", async (req, res) => {
     return;
   }
 
+  if (!dbType) {
+    res.status(statusCodes.missingInfo).json({
+      status: false,
+      message: "User dbType missing",
+    });
+    return;
+  }
+
   let posts;
 
   try {
-    posts = await Post.find({ userId: id });
+    posts = await Post.find({ userId: id, dbTypes: { $in: [dbType] } });
   } catch (err) {
     reqToDbFailed(res, err);
     return;
@@ -147,15 +156,98 @@ router.get("/user/:id", async (req, res) => {
     return;
   }
 
-  res.status(statusCodes.ok).json({
-    status: true,
-    message: "User found",
-    data: user,
+  const posts = await Post.find({ userId: id });
+
+  if (posts.length == 0) {
+    res.status(statusCodes.ok).json({
+      status: true,
+      message: "User found",
+      data: user,
+      flag: {
+        [dbTypes.fb]: 0,
+        [dbTypes.insta]: 0,
+        [dbTypes.twitter]: 0,
+      },
+    });
+    return;
+  }
+
+  const regex = new RegExp(hateSpeech.join("|"), "gi");
+
+  const fbFlags = [];
+  const instaFlags = [];
+  const twitterFlags = [];
+  posts.forEach((item) => {
+    const description = item.desc;
+    const count = description?.match(regex)?.length;
+
+    if (count >= 15) {
+      switch (item.dbType) {
+        case dbTypes.fb: {
+          fbFlags.push(-3);
+          break;
+        }
+        case dbTypes.insta: {
+          instaFlags.push(-3);
+          break;
+        }
+        case dbTypes.twitter: {
+          twitterFlags.push(-3);
+          break;
+        }
+      }
+    } else if (count >= 10) {
+      switch (item.dbType) {
+        case dbTypes.fb: {
+          fbFlags.push(-2);
+          break;
+        }
+        case dbTypes.insta: {
+          instaFlags.push(-2);
+          break;
+        }
+        case dbTypes.twitter: {
+          twitterFlags.push(-2);
+          break;
+        }
+      }
+    } else if (count >= 5) {
+      switch (item.dbType) {
+        case dbTypes.fb: {
+          fbFlags.push(-1);
+          break;
+        }
+        case dbTypes.insta: {
+          instaFlags.push(-1);
+          break;
+        }
+        case dbTypes.twitter: {
+          twitterFlags.push(-1);
+          break;
+        }
+      }
+    } else {
+      switch (item.dbType) {
+        case dbTypes.fb: {
+          fbFlags.push(0);
+          break;
+        }
+        case dbTypes.insta: {
+          instaFlags.push(0);
+          break;
+        }
+        case dbTypes.twitter: {
+          twitterFlags.push(0);
+          break;
+        }
+      }
+    }
   });
+  console.log(fbFlags, instaPosts, twitterPosts);
 });
 
-router.get("/generate", async (req, res) => {
-  await generatePosts();
-});
+// router.get("/generate", async (req, res) => {
+//   await generatePosts();
+// });
 
 export default router;

@@ -20,3 +20,5 @@ export const dbTypes = {
   insta: "instagram",
   twitter: "twitter",
 };
+
+export const hateSpeech = ["terror", "murder"];
